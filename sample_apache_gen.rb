@@ -1,12 +1,9 @@
 # -*- encoding: utf-8 -*-
-require 'json'
-require 'msgpack'
-require 'digest/md5'
-require 'cgi'
-require 'uuidtools'
+
+require 'time'
 require 'fileutils'
-require 'zlib'
-require 'parallel'
+require 'optparse'
+require 'json'
 
 RECORDS = 5000
 HOSTS = RECORDS/4
@@ -161,6 +158,98 @@ class Page
   end
 end
 
+# Windowsだと割り込みが55msや10msだったりとするので100msごとに処理するように。
+# 汚いソースになっちゃった・・。
+# MultimediaTimer使えばいいんだけど、めんどくさ。
+class Executors
+  FIXED_RATE = 100
+  def self.exec(rate_per_sec, display = false)
+    mspr = 1000.0 / rate_per_sec # ms per rec.
+    rate = rate_per_sec.to_f / (1000 / FIXED_RATE) # rec per 100ms
+    start_time = Time.now
+
+    time = last_display = Time.now
+    count = 0
+    total_count = 0
+    while true do
+
+      break unless yield({
+        :start_time => start_time,
+        :total_count => total_count,
+        :elapsed_time => (Time.now - start_time).round,
+      })
+
+      total_count += 1
+      count += 1
+
+      if count >= rate then
+        spent = ((Time.now - time) * 1000).round
+        sleep_ms = mspr - spent
+        sleep(sleep_ms / 1000.0) if sleep_ms > 0
+        time = Time.now
+        count = 0
+      end
+
+      if display then
+        if Time.now - last_display >= 1.0 then
+          $stderr.printf("\r%d[rec] %.2f[rec/s]", total_count, total_count / (Time.now - start_time + 0.001))
+          last_display = Time.now
+        end
+      end
+
+    end
+  end
+end
+
+class MyWriter
+  def initialize(filename)
+    @filename = filename
+    @io = nil
+    rotate()
+  end
+  def rotate()
+    if @filename == nil then
+      @io = $stdout
+      return nil
+    else
+      dir = File.dirname(@filename)
+      name = File.basename(@filename, '.*') + '.' + Time.now.strftime('%Y-%m-%d_%H%M%S') + File.extname(@filename)
+      FileUtils.mkdir_p(dir) if File.exists?(dir)
+      if @io != nil then
+        File.rename(@filename, name)
+        @io.close
+      end
+      @io = open(@filename, "w")
+      return File.join(dir, name)
+    end
+  end
+  def write(str)
+    return @io.write(str)
+  end
+  def close()
+    if @filename != nil && @io != nil && @io.closed? then
+      @io.close
+    end
+  end
+end
+
+# オプションの解釈
+opt_rate = 10
+opt_rotate = 0
+opt_progress = false
+opt_json = false
+op = OptionParser.new
+op.on('--rate=RATE', '毎秒何レコード生成するか。デフォルトは10。'){|v| opt_rate = v.to_i }
+op.on('--rotate=SECOND', 'ローテーションする間隔。デフォルトは0。'){|v| opt_rotate = v.to_i }
+op.on('--progress', 'レートの表示をする。'){|v| opt_progress = true }
+op.on('--json', 'json形式の出力'){|v| opt_json = true }
+op.parse!(ARGV)
+
+# ファイルかSTDOUTか
+opt_filename = nil
+opt_filename = ARGV[0] if not ARGV.empty?
+opt_writer = MyWriter.new(opt_filename)
+
 @pages = []
 PAGES.times do
   @pages << Page.new
@@ -171,10 +260,8 @@ HOSTS.times do
   @hosts << Host.new
 end
 
-now = Time.now.to_i
+Executors.exec(opt_rate, opt_progress) do | context |
 
-RECORDS.times do
-  now += grand(5)
   page = @pages[grand(@pages.size)]
   host = @hosts[grand(@hosts.size)]
   record = {
@@ -187,7 +274,23 @@ RECORDS.times do
     'size' => page.size,
     'agent' => host.agent,
   }
-  puts record.to_json
-  #puts %[#{record['host']} - #{record['user']} [#{Time.at(now).strftime('%d/%b/%Y:%H:%M:%S %z')}] "#{record['method']} #{record['path']} HTTP/1.1" #{record['code']} #{record['size']} "#{record['referer']}" "#{record['agent']}"]
+
+  if opt_rotate > 0 && context[:elapsed_time] > 0 && context[:elapsed_time] % opt_rotate == 0 then
+    rotated_file = opt_writer.rotate()
+    if opt_progress then
+      $stderr.write "\rfile rotate. rename to #{rotated_file}\n"
+    end
+  end
+  
+  if opt_json then
+    buf = record.to_json
+  else
+    buf = %[#{record['host']} - #{record['user']} [#{Time.now.strftime('%d/%b/%Y:%H:%M:%S %z')}] "#{record['method']} #{record['path']} HTTP/1.1" #{record['code']} #{record['size']} "#{record['referer']}" "#{record['agent']}"]
+  end
+  opt_writer.write(buf)
+  opt_writer.write("\n")
+
+  true
+
 end
 
