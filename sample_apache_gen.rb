@@ -218,7 +218,7 @@ class MyWriter
     else
       dir = File.dirname(@filename)
       name = File.basename(@filename, '.*') + '.' + Time.now.strftime('%Y-%m-%d_%H%M%S') + File.extname(@filename)
-      FileUtils.mkdir_p(dir) if File.exists?(dir)
+      FileUtils.mkdir_p(dir) unless File.exists?(dir)
       if @io != nil then
         File.rename(@filename, name)
         @io.close
