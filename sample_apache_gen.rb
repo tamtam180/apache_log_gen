@@ -223,7 +223,7 @@ class MyWriter
         File.rename(@filename, name)
         @io.close
       end
-      @io = open(@filename, "w")
+      @io = open(@filename, "a")
       return File.join(dir, name)
     end
   end
