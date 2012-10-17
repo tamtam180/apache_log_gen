@@ -234,11 +234,13 @@ class MyWriter
 end
 
 # オプションの解釈
+opt_limit = 0
 opt_rate = 10
 opt_rotate = 0
 opt_progress = false
 opt_json = false
 op = OptionParser.new
+op.on('--limit=COUNT', '最大何件出力するか。デフォルトは0で無制限。'){|v| opt_limit = v.to_i }
 op.on('--rate=RATE', '毎秒何レコード生成するか。デフォルトは10。'){|v| opt_rate = v.to_i }
 op.on('--rotate=SECOND', 'ローテーションする間隔。デフォルトは0。'){|v| opt_rotate = v.to_i }
 op.on('--progress', 'レートの表示をする。'){|v| opt_progress = true }
@@ -292,7 +294,8 @@ Executors.exec(opt_rate, opt_progress) do | context |
   opt_writer.write(buf)
   opt_writer.write("\n")
 
-  true
+  not (opt_limit > 0 && opt_limit <= context[:total_count])
 
 end
+opt_writer.close
 
