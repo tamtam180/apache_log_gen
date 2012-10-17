@@ -260,6 +260,7 @@ HOSTS.times do
   @hosts << Host.new
 end
 
+last_rotate = Time.now.to_i
 Executors.exec(opt_rate, opt_progress) do | context |
 
   page = @pages[grand(@pages.size)]
@@ -275,11 +276,12 @@ Executors.exec(opt_rate, opt_progress) do | context |
     'agent' => host.agent,
   }
 
-  if opt_rotate > 0 && context[:elapsed_time] > 0 && context[:elapsed_time] % opt_rotate == 0 then
+  if opt_rotate > 0 && (last_rotate + opt_rotate) <= Time.now.to_i then
     rotated_file = opt_writer.rotate()
     if opt_progress then
       $stderr.write "\rfile rotate. rename to #{rotated_file}\n"
     end
+    last_rotate = Time.now.to_i
   end
   
   if opt_json then
