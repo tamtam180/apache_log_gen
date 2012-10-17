@@ -295,8 +295,7 @@ Executors.exec(opt_rate, opt_progress) do | context |
   else
     buf = %[#{record['host']} - #{record['user']} [#{Time.now.strftime('%d/%b/%Y:%H:%M:%S %z')}] "#{record['method']} #{record['path']} HTTP/1.1" #{record['code']} #{record['size']} "#{record['referer']}" "#{record['agent']}"]
   end
-  opt_writer.write(buf)
-  opt_writer.write("\n")
+  opt_writer.write(buf + "\n")
 
   not (opt_limit > 0 && opt_limit <= context[:total_count])
 
