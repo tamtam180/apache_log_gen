@@ -231,7 +231,7 @@ class MyWriter
     return @io.write(str)
   end
   def close()
-    if @filename != nil && @io != nil && @io.closed? then
+    if @filename != nil && @io != nil && !@io.closed? then
       @io.close
     end
   end
