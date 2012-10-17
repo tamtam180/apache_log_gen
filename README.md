@@ -18,7 +18,7 @@ Apacheログに対して何かの処理を行いたい場合に使うための�
  ruby sample_apache_gen.rb [options] [file]
 
    --limit=COUNT           最大何件出力するか。デフォルトは0で無制限。
-   --rate=RATE             毎秒何レコード生成するか。デフォルトは10秒。
+   --rate=RATE             毎秒何レコード生成するか。デフォルトは0秒で流量制限無し。
    --rotate=SECOND         ファイルローテーションをする間隔。デフォルトは0(行わない)。
                            ファイル名を指定した場合は無効。
    --progress              STDERRに生成速度の表示をする
@@ -30,13 +30,13 @@ Apacheログに対して何かの処理を行いたい場合に使うための�
 
 # 例
 
-## STDOUTに毎秒10レコード出力
+## STDOUTにレコード出力
     ruby sample_apache_gen.rb
 
 ## JSONで出力
     ruby sample_apache_gen.rb --json
 
-## 毎秒100レコードをファイル「abc.log」に出力
+## 毎秒100レコードの速度でファイル「abc.log」に出力
     ruby sample_apache_gen.rb --rate=100 abc.log
 
 ## 10秒ごとにファイルのローテーションを行う
@@ -62,6 +62,8 @@ Apache License, Version 2.0
 # 謝辞
 
 TreasureDataのスクリプトをパクりました。
+
+オリジナルとの差異は、ログの日付を現在の日付で出力する点です。
 
 * https://github.com/treasure-data/td
 * https://github.com/treasure-data/td/blob/master/data/sample_apache_gen.rb

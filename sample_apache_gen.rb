@@ -164,8 +164,12 @@ end
 class Executors
   FIXED_RATE = 100
   def self.exec(rate_per_sec, display = false)
-    mspr = 1000.0 / rate_per_sec # ms per rec.
-    rate = rate_per_sec.to_f / (1000 / FIXED_RATE) # rec per 100ms
+
+    limited = rate_per_sec > 0
+    if limited then
+      mspr = 1000.0 / rate_per_sec # ms per rec.
+      rate = rate_per_sec.to_f / (1000 / FIXED_RATE) # rec per 100ms
+    end
     start_time = Time.now
 
     time = last_display = Time.now
@@ -182,7 +186,7 @@ class Executors
       total_count += 1
       count += 1
 
-      if count >= rate then
+      if limited && count >= rate then
         spent = ((Time.now - time) * 1000).round
         sleep_ms = mspr - spent
         sleep(sleep_ms / 1000.0) if sleep_ms > 0
@@ -235,13 +239,13 @@ end
 
 # オプションの解釈
 opt_limit = 0
-opt_rate = 10
+opt_rate = 0
 opt_rotate = 0
 opt_progress = false
 opt_json = false
 op = OptionParser.new
 op.on('--limit=COUNT', '最大何件出力するか。デフォルトは0で無制限。'){|v| opt_limit = v.to_i }
-op.on('--rate=RATE', '毎秒何レコード生成するか。デフォルトは10。'){|v| opt_rate = v.to_i }
+op.on('--rate=RATE', '毎秒何レコード生成するか。デフォルトは0で流量制限無し。'){|v| opt_rate = v.to_i }
 op.on('--rotate=SECOND', 'ローテーションする間隔。デフォルトは0。'){|v| opt_rotate = v.to_i }
 op.on('--progress', 'レートの表示をする。'){|v| opt_progress = true }
 op.on('--json', 'json形式の出力'){|v| opt_json = true }
