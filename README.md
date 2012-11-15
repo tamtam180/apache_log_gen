@@ -12,6 +12,12 @@ Apacheログに対して何かの処理を行いたい場合に使うための�
 一応、流速がなだらかになるようになっています。
 100msよりも割り込み精度が低いOSの場合はその限りではありません。
 
+## 性能
+私のへっぽこ開発PCで毎秒12,000レコードほど生成します。
+
+    Fedora16(CPU:2Core, Mem:3GB) on VirtualBox on Windows7(Corei7 M640 2.8GB, Mem:8GB)
+	Ruby 1.9.3p194
+
 # 使い方
 
 ```
@@ -54,6 +60,79 @@ Apacheログに対して何かの処理を行いたい場合に使うための�
 
 # ローテーションルール
     abc.log -> abc.[yyyy-MM-dd_HHmmss].log
+
+
+# 他のログを生成したい場合
+再利用できるようにある程度クラス化してあるので、Apache以外のログも対応可能です。
+
+以下のコードでログ生成を開始します。
+
+    LogGenerator.generate(conf=nil, gen_obj=nil, &block)
+----
+    conf にnilを渡すとARGVをパースします。
+    conf にHashを渡すと、デフォルトのオプションから、渡したものだけ上書きします。
+
+実際にログを生成する部分は、LogGenerator::Baseを継承し、generate(context, config)というメソッドを定義する必要があります。
+デフォルトではLogGenerator::Apacheというクラスが存在します。
+Apacheログをベースに何かいじる場合は、これを利用すると良いと思います。
+
+もっと気軽に生成したい場合は、以下のようにブロックを渡すことでGeneratorの代わりとなります。
+
+    LogGenerator.generate() do | context, config, record |
+	  # ログを1つ分生成する。
+	  Time.now.to_s + "\n"
+	end
+
+上記のrecordは、第2引数のgen_objも指定した場合にその結果を受け取り、さらにblockで加工する場合に使います。
+
+## Apacheのログの出力形式を変更したい
+
+```ruby
+class MyGen < LogGenerator::Apache
+  def format(record, config)
+    # 今回はJSONを無視する
+    return %[[#{Time.now.strftime('%d/%b/%Y:%H:%M:%S %z')}] #{record["path"]}\n]
+  end 
+end
+LogGenerator.generate(nil, MyGen.new)
+```
+
+## Apacheのログに新しく情報を追加したい
+```ruby
+class MyGen < LogGenerator::Apache
+  # オリジナル実装はhashをJSONか1行の文字列にしているが
+  # 今回はそれに情報を追加する
+  def format(record, config)
+    record["process_time"] = grand(1000000) + 1000
+    if config[:json] then
+      return record.to_json + "\n"
+    else
+      return %[#{record['host']} - #{record['user']} [#{Time.now.strftime('%d/%b/%Y:%H:%M:%S %z')}] "#{record['method']} #{record['path']} HTTP/1.1" #{record['code
+    end
+  end
+end
+LogGenerator.generate(nil, MyGen.new)
+```
+
+## 完全に独自のログ形式を出力したい
+
+```ruby
+class MyGen < LogGenerator::Base
+  def generate(context, config)
+    return "#{Time.now.to_s} #{context.inspect}\n"
+  end
+end
+LogGenerator.generate(nil, MyGen.new)
+```
+
+もしくは、
+
+```ruby
+LogGenerator.generate do | context, config, record |
+  "#{Time.now.to_s} #{context.inspect}\n"
+end
+```
+
 
 
 # ライセンス
