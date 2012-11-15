@@ -18,10 +18,16 @@ Apacheログに対して何かの処理を行いたい場合に使うための�
     Fedora16(CPU:2Core, Mem:3GB) on VirtualBox on Windows7(Corei7 M640 2.8GB, Mem:8GB)
 	Ruby 1.9.3p194
 
+# インストール
+
+    gem install apache-loggen
+
+apache-loggenというコマンドがgems/binに作られます。
+
 # 使い方
 
 ```
- ruby sample_apache_gen.rb [options] [file]
+  apache-loggen [options] [file]
 
    --limit=COUNT           最大何件出力するか。デフォルトは0で無制限。
    --rate=RATE             毎秒何レコード生成するか。デフォルトは0秒で流量制限無し。
@@ -37,26 +43,26 @@ Apacheログに対して何かの処理を行いたい場合に使うための�
 # 例
 
 ## STDOUTにレコード出力
-    ruby sample_apache_gen.rb
+	apache-loggen
 
 ## JSONで出力
-    ruby sample_apache_gen.rb --json
+    apache-loggen --json
 
 ## 毎秒100レコードの速度でファイル「abc.log」に出力
-    ruby sample_apache_gen.rb --rate=100 abc.log
+    apache-loggen --rate=100 abc.log
 
 ## 10秒ごとにファイルのローテーションを行う
-    ruby sample_apache_gen.rb --rotate=10 abc.og
+    apache-loggen --rotate=10 abc.og
 
 ## 生成状況を表示する
-    ruby sample_apache_gen.rb --rotate=10 --progress abc.log
+    apache-loggen --rotate=10 --progress abc.log
 ----
     file rotate. rename to ./abc.2012-10-17_113723.log
     file rotate. rename to ./abc.2012-10-17_113733.log
     220[rec] 9.90[rec/s]
 
 ## 5000件出力で打ちきる
-    ruby sample_apache_gen.rb --limit=5000
+    apache-loggen --limit=5000
 
 # ローテーションルール
     abc.log -> abc.[yyyy-MM-dd_HHmmss].log
@@ -67,8 +73,10 @@ Apacheログに対して何かの処理を行いたい場合に使うための�
 
 以下のコードでログ生成を開始します。
 
+    require 'apache-loggen/base'
     LogGenerator.generate(conf=nil, gen_obj=nil, &block)
 ----
+    apache-loggen/base をrequireします。
     conf にnilを渡すとARGVをパースします。
     conf にHashを渡すと、デフォルトのオプションから、渡したものだけ上書きします。
 
@@ -88,6 +96,7 @@ Apacheログをベースに何かいじる場合は、これを利用すると�
 ## Apacheのログの出力形式を変更したい
 
 ```ruby
+require 'apache-loggen/base'
 class MyGen < LogGenerator::Apache
   def format(record, config)
     # 今回はJSONを無視する
@@ -99,6 +108,7 @@ LogGenerator.generate(nil, MyGen.new)
 
 ## Apacheのログに新しく情報を追加したい
 ```ruby
+require 'apache-loggen/base'
 class MyGen < LogGenerator::Apache
   # オリジナル実装はhashをJSONか1行の文字列にしているが
   # 今回はそれに情報を追加する
@@ -117,6 +127,7 @@ LogGenerator.generate(nil, MyGen.new)
 ## 完全に独自のログ形式を出力したい
 
 ```ruby
+require 'apache-loggen/base'
 class MyGen < LogGenerator::Base
   def generate(context, config)
     return "#{Time.now.to_s} #{context.inspect}\n"
@@ -128,12 +139,16 @@ LogGenerator.generate(nil, MyGen.new)
 もしくは、
 
 ```ruby
+require 'apache-loggen/base'
 LogGenerator.generate do | context, config, record |
   "#{Time.now.to_s} #{context.inspect}\n"
 end
 ```
 
 
+# 履歴
+- 0.0.2 RubyGemsに登録。コマンドを用意した。クラスの再利用ができるようにした。
+- 0.0.1 はじめてのリリース
 
 # ライセンス
 Apache License, Version 2.0
@@ -146,6 +161,5 @@ TreasureDataのスクリプトをパクりました。
 
 * https://github.com/treasure-data/td
 * https://github.com/treasure-data/td/blob/master/data/sample_apache_gen.rb
-
 
 

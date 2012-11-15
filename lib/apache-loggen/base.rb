@@ -367,14 +367,3 @@ module LogGenerator
 
 end
 
-if __FILE__ == $0 then
-
-  # オプションの解釈
-  #config = LogGenerator.parse_config()
-
-  # Apacheのログ
-  gen = LogGenerator::Apache.new()
-  LogGenerator.generate(nil, gen)
-
-end
-
