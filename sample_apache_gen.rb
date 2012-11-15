@@ -312,15 +312,15 @@ module LogGenerator
       :json => false,
       :filename => nil,
     }
-    def self.execute(conf = {})
+    def self.execute(conf={}, gen_obj=nil, &block)
       
       config = DEFAULT_CONFIG.merge(conf)
-
-      writer = LogGenerator::MyWriter.new(config[:filename])
+      writer = MyWriter.new(config[:filename])
+      gen_kick = gen_obj && gen_obj.is_a?(Base)
 
       # 実行
       last_rotate = Time.now.to_i
-      LogGenerator::Executors.exec(config) do | context |
+      Executors.exec(config) do | context |
 
         if config[:rotate] > 0 && (last_rotate + config[:rotate]) <= Time.now.to_i then
           rotated_file = writer.rotate()
@@ -331,8 +331,9 @@ module LogGenerator
         end
         
         # レコード生成
-        #record = gen.generate(context, config)
-        record = yield(context, config)
+        record = gen_obj.generate(context, config) if gen_kick
+        record = block.call(context, config, record) if block
+
         # 出力
         writer.write(record)
 
@@ -343,6 +344,11 @@ module LogGenerator
 
     end
   end
+
+  def generate(conf={}, gen_obj=nil, &block)
+    Generator.execute(conf, gen_obj, &block);
+  end
+  module_function :generate
 
 end
 
@@ -361,10 +367,9 @@ if __FILE__ == $0 then
   # ファイルかSTDOUTか
   config[:filename] = ARGV[0] if not ARGV.empty?
 
+  # Apacheのログ
   gen = LogGenerator::Apache.new()
-  LogGenerator::Generator.execute(config) do |context, config|
-    gen.generate(context, config)
-  end
+  LogGenerator.generate(config, gen)
 
 end
 
