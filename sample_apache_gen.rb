@@ -345,9 +345,24 @@ module LogGenerator
     end
   end
 
-  def generate(conf={}, gen_obj=nil, &block)
-    Generator.execute(conf, gen_obj, &block);
+  def parse_config()
+    config = {}
+    op = OptionParser.new
+    op.on('--limit=COUNT', '最大何件出力するか。デフォルトは0で無制限。'){|v| config[:limit] = v.to_i }
+    op.on('--rate=RATE', '毎秒何レコード生成するか。デフォルトは0で流量制限無し。'){|v| config[:rate] = v.to_i }
+    op.on('--rotate=SECOND', 'ローテーションする間隔。デフォルトは0。'){|v| config[:rotate] = v.to_i }
+    op.on('--progress', 'レートの表示をする。'){|v| config[:progress] = true }
+    op.on('--json', 'json形式の出力'){|v| config[:json] = true }
+    op.parse!(ARGV)
+    # ファイルかSTDOUTか
+    config[:filename] = ARGV[0] if not ARGV.empty?
+    return config
   end
+  def generate(conf=nil, gen_obj=nil, &block)
+    conf = parse_config() if conf == nil
+    Generator.execute(conf, gen_obj, &block)
+  end
+  module_function :parse_config
   module_function :generate
 
 end
@@ -355,21 +370,11 @@ end
 if __FILE__ == $0 then
 
   # オプションの解釈
-  config = {}
-  op = OptionParser.new
-  op.on('--limit=COUNT', '最大何件出力するか。デフォルトは0で無制限。'){|v| config[:limit] = v.to_i }
-  op.on('--rate=RATE', '毎秒何レコード生成するか。デフォルトは0で流量制限無し。'){|v| config[:rate] = v.to_i }
-  op.on('--rotate=SECOND', 'ローテーションする間隔。デフォルトは0。'){|v| config[:rotate] = v.to_i }
-  op.on('--progress', 'レートの表示をする。'){|v| config[:progress] = true }
-  op.on('--json', 'json形式の出力'){|v| config[:json] = true }
-  op.parse!(ARGV)
-
-  # ファイルかSTDOUTか
-  config[:filename] = ARGV[0] if not ARGV.empty?
+  #config = LogGenerator.parse_config()
 
   # Apacheのログ
   gen = LogGenerator::Apache.new()
-  LogGenerator.generate(config, gen)
+  LogGenerator.generate(nil, gen)
 
 end
 
