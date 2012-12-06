@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 
+require 'rubygems'
 require 'time'
 require 'fileutils'
 require 'optparse'
@@ -92,9 +93,15 @@ module LogGenerator
     # インナークラスから使うためにmodule化
     # 使う場合はinclude RANDする
     module RAND
-      RANDOM = Random.new
-      def grand(n)
-        RANDOM.rand(n)
+      if RUBY_VERSION >= '1.9.1'
+        RANDOM = Random.new
+        def grand(n)
+          RANDOM.rand(n)
+        end
+      else
+        def grand(n)
+          rand(n)
+        end
       end
     end
     include RAND
@@ -171,7 +178,7 @@ module LogGenerator
         else
           w = [cate]
         end
-        q = w.map {|k| k[0].upcase + k[1..-1] }.join('+')
+        q = w.map {|k| k[0..0].upcase + k[1..-1] }.join('+')
         search_path = "/search/?c=#{q}"
         google_ref = "http://www.google.com/search?ie=UTF-8&q=google&sclient=psy-ab&q=#{q}&oq=#{q}&aq=f&aqi=g-vL1&aql=&pbx=1&bav=on.2,or.r_gc.r_pw.r_qf.,cf.osb&biw=#{grand(5000)}&bih=#{grand(600)}"
 
