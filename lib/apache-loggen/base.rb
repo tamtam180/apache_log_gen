@@ -296,6 +296,9 @@ module LogGenerator
     def write(str)
       return @io.write(str)
     end
+    def flush()
+      @io.flush()
+    end
     def close()
       if @filename != nil && @io != nil && !@io.closed? then
         @io.close
@@ -336,6 +339,7 @@ module LogGenerator
 
         # 出力
         writer.write(record)
+        writer.flush()
 
         not (config[:limit] > 0 && config[:limit] <= context[:total_count])
 
