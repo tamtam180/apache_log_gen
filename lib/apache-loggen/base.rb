@@ -134,7 +134,7 @@ module LogGenerator
         'size' => page.size,
         'agent' => host.agent,
       }
-    
+
       return format(record, config)
 
     end
@@ -143,7 +143,7 @@ module LogGenerator
       if config[:json] then
         return record.to_json + "\n"
       else
-        return %[#{record['host']} - #{record['user']} [#{Time.now.strftime('%d/%b/%Y:%H:%M:%S %z')}] "#{record['method']} #{record['path']} HTTP/1.1" #{record['code']} #{record['size']} "#{record['referer']}" "#{record['agent']}"\n] 
+        return %[#{record['host']} - #{record['user']} [#{Time.now.strftime('%d/%b/%Y:%H:%M:%S %z')}] "#{record['method']} #{record['path']} HTTP/1.1" #{record['code']} #{record['size']} "#{record['referer']}" "#{record['agent']}"\n]
       end
     end
 
@@ -323,7 +323,7 @@ module LogGenerator
       :filename => nil,
     }
     def self.execute(conf={}, gen_obj=nil, &block)
-      
+
       config = DEFAULT_CONFIG.merge(conf)
       writer = MyWriter.new(config[:filename])
       gen_kick = gen_obj && gen_obj.is_a?(Base)
@@ -339,7 +339,7 @@ module LogGenerator
           end
           last_rotate = Time.now.to_i
         end
-        
+
         # レコード生成
         record = gen_obj.generate(context, config) if gen_kick
         record = block.call(context, config, record) if block
@@ -348,7 +348,7 @@ module LogGenerator
         writer.write(record)
         writer.flush()
 
-        not (config[:limit] > 0 && config[:limit] <= context[:total_count])
+        not (config[:limit] > 0 && config[:limit] <= context[:total_count] + 1)
 
       end
       writer.close
@@ -377,4 +377,3 @@ module LogGenerator
   module_function :generate
 
 end
-
