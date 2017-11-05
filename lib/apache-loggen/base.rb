@@ -348,7 +348,7 @@ module LogGenerator
         writer.write(record)
         writer.flush()
 
-        not (config[:limit] > 0 && config[:limit] <= context[:total_count])
+        not (config[:limit] > 0 && config[:limit] <= context[:total_count]+1)
 
       end
       writer.close
